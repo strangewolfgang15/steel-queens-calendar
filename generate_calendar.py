@@ -71,9 +71,9 @@ def candidates_from_rest():
         ),
     ]
 
-    events = []
-
     for url in endpoints:
+        events = []
+
         try:
             data = fetch_json(url)
 
@@ -93,12 +93,12 @@ def candidates_from_rest():
                 if TEAM.lower() not in title.lower():
                     continue
 
-                dt = parse_iso_date(
+                start = parse_iso_date(
                     item.get("date")
                     or item.get("date_gmt")
                 )
 
-                if not dt:
+                if not start:
                     continue
 
                 link = item.get("link") or ""
@@ -106,18 +106,18 @@ def candidates_from_rest():
                 content = item.get("content", {})
 
                 if isinstance(content, dict):
-                    desc = clean_html(
+                    description = clean_html(
                         content.get("rendered", "")
                     )
                 else:
-                    desc = clean_html(content)
+                    description = clean_html(content)
 
                 events.append(
                     {
                         "title": title,
-                        "start": dt,
+                        "start": start,
                         "url": link,
-                        "description": desc,
+                        "description": description,
                     }
                 )
 
@@ -125,20 +125,12 @@ def candidates_from_rest():
                 return events, url
 
         except Exception:
-            pass
+            continue
 
     return [], None
 
 
 def candidates_from_homepage():
-    """
-    Fallback if the WordPress REST/SportsPress API
-    is unavailable.
-
-    Captures public fixture information from the
-    Steel Queens website.
-    """
-
     response = requests.get(
         SITE + "/",
         timeout=30,
@@ -172,15 +164,15 @@ def candidates_from_homepage():
     for match in pattern.finditer(text):
         title = match.group(1).strip()
         date_string = match.group(2)
-
-        # Default to 19:30 if no time is published.
         time_string = match.group(3) or "19:30"
 
         try:
-            dt = datetime.strptime(
+            start = datetime.strptime(
                 date_string + " " + time_string,
                 "%d/%m/%Y %H:%M",
-            ).replace(tzinfo=timezone.utc)
+            ).replace(
+                tzinfo=timezone.utc
+            )
 
         except ValueError:
             continue
@@ -188,7 +180,7 @@ def candidates_from_homepage():
         events.append(
             {
                 "title": title,
-                "start": dt,
+                "start": start,
                 "url": SITE,
                 "description": "",
             }
@@ -198,14 +190,6 @@ def candidates_from_homepage():
 
 
 def is_home(title):
-    """
-    The Steel Queens website normally formats fixtures:
-
-        Caledonia Steel Queens vs Opponent
-
-    for home games.
-    """
-
     normalised = re.sub(
         r"\s+",
         " ",
@@ -235,10 +219,6 @@ def opponent(title):
 
 
 def esc(value):
-    """
-    Escape text for use inside an ICS file.
-    """
-
     return (
         str(value)
         .replace("\\", "\\\\")
@@ -249,13 +229,6 @@ def esc(value):
 
 
 def fmt(dt):
-    """
-    Store times in UTC.
-
-    Calendar apps will display the corresponding
-    local time automatically.
-    """
-
     return (
         dt.astimezone(timezone.utc)
         .strftime("%Y%m%dT%H%M%SZ")
@@ -265,7 +238,7 @@ def fmt(dt):
 def event_lines(event):
     start = event["start"]
 
-    duration = int(
+    duration_minutes = int(
         CFG.get(
             "default_duration_minutes",
             180,
@@ -273,7 +246,7 @@ def event_lines(event):
     )
 
     end = start + timedelta(
-        minutes=duration
+        minutes=duration_minutes
     )
 
     home = is_home(
@@ -318,13 +291,13 @@ def event_lines(event):
             + event["url"]
         )
 
+    location = ""
+
     if home:
         location = CFG.get(
             "home_venue",
             "",
         )
-    else:
-        location = ""
 
     lines = [
         "BEGIN:VEVENT",
@@ -344,10 +317,7 @@ def event_lines(event):
         f"DTEND:{fmt(end)}",
         f"SUMMARY:{esc(nice_title)}",
         f"LOCATION:{esc(location)}",
-        (
-            "DESCRIPTION:"
-            + esc(description)
-        ),
+        f"DESCRIPTION:{esc(description)}",
         "STATUS:CONFIRMED",
     ]
 
@@ -367,18 +337,20 @@ def event_lines(event):
                 f"TRIGGER:-P{days}D"
             )
 
-        lines += [
-            "BEGIN:VALARM",
-            "ACTION:DISPLAY",
-            (
-                "DESCRIPTION:"
-                + esc(
-                    f"{nice_title} reminder"
-                )
-            ),
-            trigger,
-            "END:VALARM",
-        ]
+        lines.extend(
+            [
+                "BEGIN:VALARM",
+                "ACTION:DISPLAY",
+                (
+                    "DESCRIPTION:"
+                    + esc(
+                        f"{nice_title} reminder"
+                    )
+                ),
+                trigger,
+                "END:VALARM",
+            ]
+        )
 
     lines.append(
         "END:VEVENT"
@@ -397,10 +369,7 @@ def calendar(events, name):
             "PRODID:"
             "-//Steel Queens Calendar//EN"
         ),
-        (
-            "X-WR-CALNAME:"
-            + esc(name)
-        ),
+        f"X-WR-CALNAME:{esc(name)}",
         (
             "X-WR-TIMEZONE:"
             + esc(
@@ -431,18 +400,12 @@ def calendar(events, name):
 
 
 def main():
-    # First try the structured WordPress /
-    # SportsPress fixture data.
     events, source = candidates_from_rest()
 
-    # Fall back to the public website if necessary.
     if not events:
         events, source = candidates_from_homepage()
 
-    # -------------------------------------------------
-    # DEDUPLICATE FIXTURES
-    # -------------------------------------------------
-
+    # Deduplicate by title + start.
     deduplicated = {}
 
     for event in events:
@@ -457,22 +420,7 @@ def main():
         deduplicated.values()
     )
 
-    # -------------------------------------------------
-    # REMOVE HISTORICAL FIXTURES
-    # -------------------------------------------------
-    #
-    # Keep:
-    #   - games taking place today
-    #   - every future game
-    #
-    # Remove:
-    #   - yesterday and anything earlier
-    #
-    # Keeping today's game means it will remain visible
-    # for the whole match day rather than disappearing
-    # immediately after face-off.
-    # -------------------------------------------------
-
+    # Keep today's fixtures and all future fixtures.
     today = datetime.now(
         timezone.utc
     ).date()
@@ -483,30 +431,19 @@ def main():
         if event["start"].date() >= today
     ]
 
-    # Safety feature:
-    #
-    # If the source suddenly contains no current/future
-    # fixtures, don't overwrite the existing calendars
-    # with empty files.
-       if not events:
+    # If there are no current/future fixtures,
+    # publish empty calendars instead of failing.
+    if not events:
         print(
             "No current or future Steel Queens fixtures found. "
             "Publishing empty calendars until new fixtures are added."
         )
-
-    # -------------------------------------------------
-    # HOME-ONLY CALENDAR
-    # -------------------------------------------------
 
     home_events = [
         event
         for event in events
         if is_home(event["title"])
     ]
-
-    # -------------------------------------------------
-    # WRITE ALL-GAMES CALENDAR
-    # -------------------------------------------------
 
     Path(
         CFG["feeds"]["all"]
@@ -518,10 +455,6 @@ def main():
         encoding="utf-8",
     )
 
-    # -------------------------------------------------
-    # WRITE HOME-GAMES CALENDAR
-    # -------------------------------------------------
-
     Path(
         CFG["feeds"]["home"]
     ).write_text(
@@ -531,10 +464,6 @@ def main():
         ),
         encoding="utf-8",
     )
-
-    # -------------------------------------------------
-    # LOG RESULTS IN GITHUB ACTIONS
-    # -------------------------------------------------
 
     print(
         f"Source: {source}"
