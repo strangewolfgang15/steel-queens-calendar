@@ -1,14 +1,18 @@
-    #!/usr/bin/env python3
-import json, re, sys
+#!/usr/bin/env python3
+
+import json
+import re
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
 
+
 ROOT = Path(__file__).resolve().parent
 CFG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+
 TEAM = CFG["team_name"]
 SHORT = CFG.get("short_name", TEAM)
 SITE = CFG["site_url"].rstrip("/")
@@ -17,177 +21,541 @@ SITE = CFG["site_url"].rstrip("/")
 def clean_html(value):
     if not value:
         return ""
-    return BeautifulSoup(value, "html.parser").get_text(" ", strip=True)
+
+    return BeautifulSoup(
+        value,
+        "html.parser",
+    ).get_text(" ", strip=True)
 
 
 def fetch_json(url):
-    r = requests.get(url, timeout=30, headers={"User-Agent":"Mozilla/5.0 SteelQueensCalendar/1.0"})
-    r.raise_for_status()
-    return r.json()
+    response = requests.get(
+        url,
+        timeout=30,
+        headers={
+            "User-Agent": "Mozilla/5.0 SteelQueensCalendar/1.0"
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()
 
 
-def parse_iso_date(s):
-    if not s:
+def parse_iso_date(value):
+    if not value:
         return None
-    s = s.replace("Z", "+00:00")
+
+    value = value.replace("Z", "+00:00")
+
     try:
-        dt = datetime.fromisoformat(s)
+        dt = datetime.fromisoformat(value)
+
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
+
         return dt
+
     except ValueError:
         return None
 
 
 def candidates_from_rest():
     endpoints = [
-        f"{SITE}/wp-json/sportspress/v2/events?per_page=100&orderby=date&order=asc",
-        f"{SITE}/wp-json/wp/v2/sp_event?per_page=100&orderby=date&order=asc",
+        (
+            f"{SITE}/wp-json/sportspress/v2/events"
+            "?per_page=100&orderby=date&order=asc"
+        ),
+        (
+            f"{SITE}/wp-json/wp/v2/sp_event"
+            "?per_page=100&orderby=date&order=asc"
+        ),
     ]
+
     events = []
+
     for url in endpoints:
         try:
             data = fetch_json(url)
+
             if not isinstance(data, list):
                 continue
+
             for item in data:
                 title_obj = item.get("title", "")
-                title = clean_html(title_obj.get("rendered", "") if isinstance(title_obj, dict) else title_obj)
+
+                if isinstance(title_obj, dict):
+                    title = clean_html(
+                        title_obj.get("rendered", "")
+                    )
+                else:
+                    title = clean_html(title_obj)
+
                 if TEAM.lower() not in title.lower():
                     continue
-                dt = parse_iso_date(item.get("date") or item.get("date_gmt"))
+
+                dt = parse_iso_date(
+                    item.get("date")
+                    or item.get("date_gmt")
+                )
+
                 if not dt:
                     continue
+
                 link = item.get("link") or ""
+
                 content = item.get("content", {})
-                desc = clean_html(content.get("rendered", "") if isinstance(content, dict) else content)
-                events.append({"title": title, "start": dt, "url": link, "description": desc})
+
+                if isinstance(content, dict):
+                    desc = clean_html(
+                        content.get("rendered", "")
+                    )
+                else:
+                    desc = clean_html(content)
+
+                events.append(
+                    {
+                        "title": title,
+                        "start": dt,
+                        "url": link,
+                        "description": desc,
+                    }
+                )
+
             if events:
                 return events, url
+
         except Exception:
             pass
+
     return [], None
 
 
 def candidates_from_homepage():
-    # Fallback only: captures public next-game cards if REST is disabled.
-    r = requests.get(SITE + "/", timeout=30, headers={"User-Agent":"Mozilla/5.0 SteelQueensCalendar/1.0"})
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "html.parser")
-    text = soup.get_text("\n", strip=True)
+    """
+    Fallback if the WordPress REST/SportsPress API
+    is unavailable.
+
+    Captures public fixture information from the
+    Steel Queens website.
+    """
+
+    response = requests.get(
+        SITE + "/",
+        timeout=30,
+        headers={
+            "User-Agent": "Mozilla/5.0 SteelQueensCalendar/1.0"
+        },
+    )
+
+    response.raise_for_status()
+
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser",
+    )
+
+    text = soup.get_text(
+        "\n",
+        strip=True,
+    )
+
     events = []
-    # conservative pattern: team-vs-opponent followed soon by dd/mm/yyyy and optional hh:mm
-    pat = re.compile(rf"({re.escape(TEAM)}\s+vs\s+[^\n]+).*?(\d{{2}}/\d{{2}}/\d{{4}})(?:.*?(\d{{1,2}}:\d{{2}}))?", re.I | re.S)
-    for m in pat.finditer(text):
-        title = m.group(1).strip()
-        date_s = m.group(2)
-        time_s = m.group(3) or "19:30"
+
+    pattern = re.compile(
+        rf"({re.escape(TEAM)}\s+vs\s+[^\n]+)"
+        rf".*?"
+        rf"(\d{{2}}/\d{{2}}/\d{{4}})"
+        rf"(?:.*?(\d{{1,2}}:\d{{2}}))?",
+        re.I | re.S,
+    )
+
+    for match in pattern.finditer(text):
+        title = match.group(1).strip()
+        date_string = match.group(2)
+
+        # Default to 19:30 if no time is published.
+        time_string = match.group(3) or "19:30"
+
         try:
-            dt = datetime.strptime(date_s + " " + time_s, "%d/%m/%Y %H:%M").replace(tzinfo=timezone.utc)
+            dt = datetime.strptime(
+                date_string + " " + time_string,
+                "%d/%m/%Y %H:%M",
+            ).replace(tzinfo=timezone.utc)
+
         except ValueError:
             continue
-        events.append({"title": title, "start": dt, "url": SITE, "description": ""})
+
+        events.append(
+            {
+                "title": title,
+                "start": dt,
+                "url": SITE,
+                "description": "",
+            }
+        )
+
     return events, SITE + "/"
 
 
 def is_home(title):
-    # Team listed first = home for standard "A vs B" fixture naming.
-    norm = re.sub(r"\s+", " ", title).strip().lower()
-    return norm.startswith(TEAM.lower() + " vs ")
+    """
+    The Steel Queens website normally formats fixtures:
+
+        Caledonia Steel Queens vs Opponent
+
+    for home games.
+    """
+
+    normalised = re.sub(
+        r"\s+",
+        " ",
+        title,
+    ).strip().lower()
+
+    return normalised.startswith(
+        TEAM.lower() + " vs "
+    )
 
 
 def opponent(title):
-    parts = re.split(r"\s+vs\s+", title, maxsplit=1, flags=re.I)
+    parts = re.split(
+        r"\s+vs\s+",
+        title,
+        maxsplit=1,
+        flags=re.I,
+    )
+
     if len(parts) == 2:
-        return parts[1] if is_home(title) else parts[0]
+        if is_home(title):
+            return parts[1]
+
+        return parts[0]
+
     return title
 
 
-def esc(s):
-    return str(s).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+def esc(value):
+    """
+    Escape text for use inside an ICS file.
+    """
+
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace(";", "\\;")
+        .replace(",", "\\,")
+        .replace("\n", "\\n")
+    )
 
 
 def fmt(dt):
-    # Keep UTC in generated ICS; calendar apps display local time.
-    return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    """
+    Store times in UTC.
+
+    Calendar apps will display the corresponding
+    local time automatically.
+    """
+
+    return (
+        dt.astimezone(timezone.utc)
+        .strftime("%Y%m%dT%H%M%SZ")
+    )
 
 
-def event_lines(ev):
-    start = ev["start"]
-    end = start + timedelta(minutes=int(CFG.get("default_duration_minutes", 180)))
-    home = is_home(ev["title"])
-    opp = opponent(ev["title"])
-    nice = f"🏒 {SHORT} vs {opp}" if home else f"🏒 {SHORT} @ {opp}"
-    uid_base = re.sub(r"[^a-z0-9]+", "-", (ev["title"] + start.isoformat()).lower()).strip("-")
-    desc = ev.get("description", "").strip()
-    if ev.get("url"):
-        desc = (desc + "\n" if desc else "") + "Fixture source: " + ev["url"]
-    location = CFG.get("home_venue", "") if home else ""
+def event_lines(event):
+    start = event["start"]
+
+    duration = int(
+        CFG.get(
+            "default_duration_minutes",
+            180,
+        )
+    )
+
+    end = start + timedelta(
+        minutes=duration
+    )
+
+    home = is_home(
+        event["title"]
+    )
+
+    opp = opponent(
+        event["title"]
+    )
+
+    if home:
+        nice_title = (
+            f"🏒 {SHORT} vs {opp}"
+        )
+    else:
+        nice_title = (
+            f"🏒 {SHORT} @ {opp}"
+        )
+
+    uid_base = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        (
+            event["title"]
+            + start.isoformat()
+        ).lower(),
+    ).strip("-")
+
+    description = (
+        event.get(
+            "description",
+            "",
+        ).strip()
+    )
+
+    if event.get("url"):
+        if description:
+            description += "\n"
+
+        description += (
+            "Fixture source: "
+            + event["url"]
+        )
+
+    if home:
+        location = CFG.get(
+            "home_venue",
+            "",
+        )
+    else:
+        location = ""
+
     lines = [
         "BEGIN:VEVENT",
-        f"UID:{uid_base}@steel-queens-calendar",
-        f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
+        (
+            f"UID:{uid_base}"
+            "@steel-queens-calendar"
+        ),
+        (
+            "DTSTAMP:"
+            + fmt(
+                datetime.now(
+                    timezone.utc
+                )
+            )
+        ),
         f"DTSTART:{fmt(start)}",
         f"DTEND:{fmt(end)}",
-        f"SUMMARY:{esc(nice)}",
+        f"SUMMARY:{esc(nice_title)}",
         f"LOCATION:{esc(location)}",
-        f"DESCRIPTION:{esc(desc)}",
+        (
+            "DESCRIPTION:"
+            + esc(description)
+        ),
         "STATUS:CONFIRMED",
     ]
-    for mins in CFG.get("reminders_minutes", []):
+
+    for minutes in CFG.get(
+        "reminders_minutes",
+        [],
+    ):
+        minutes = int(minutes)
+
+        if minutes < 1440:
+            trigger = (
+                f"TRIGGER:-PT{minutes}M"
+            )
+        else:
+            days = minutes // 1440
+            trigger = (
+                f"TRIGGER:-P{days}D"
+            )
+
         lines += [
-            "BEGIN:VALARM", "ACTION:DISPLAY",
-            f"DESCRIPTION:{esc(nice)} reminder",
-            f"TRIGGER:-PT{int(mins)}M" if int(mins) < 1440 else f"TRIGGER:-P{int(mins)//1440}D",
+            "BEGIN:VALARM",
+            "ACTION:DISPLAY",
+            (
+                "DESCRIPTION:"
+                + esc(
+                    f"{nice_title} reminder"
+                )
+            ),
+            trigger,
             "END:VALARM",
         ]
-    lines.append("END:VEVENT")
+
+    lines.append(
+        "END:VEVENT"
+    )
+
     return lines
 
 
 def calendar(events, name):
     lines = [
-        "BEGIN:VCALENDAR", "VERSION:2.0", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-        "PRODID:-//Steel Queens Calendar//EN",
-        f"X-WR-CALNAME:{esc(name)}",
-        f"X-WR-TIMEZONE:{esc(CFG.get('timezone','Europe/London'))}",
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        (
+            "PRODID:"
+            "-//Steel Queens Calendar//EN"
+        ),
+        (
+            "X-WR-CALNAME:"
+            + esc(name)
+        ),
+        (
+            "X-WR-TIMEZONE:"
+            + esc(
+                CFG.get(
+                    "timezone",
+                    "Europe/London",
+                )
+            )
+        ),
     ]
-    for ev in sorted(events, key=lambda x: x["start"]):
-        lines.extend(event_lines(ev))
-    lines.append("END:VCALENDAR")
-    return "\r\n".join(lines) + "\r\n"
+
+    for event in sorted(
+        events,
+        key=lambda item: item["start"],
+    ):
+        lines.extend(
+            event_lines(event)
+        )
+
+    lines.append(
+        "END:VCALENDAR"
+    )
+
+    return (
+        "\r\n".join(lines)
+        + "\r\n"
+    )
 
 
 def main():
+    # First try the structured WordPress /
+    # SportsPress fixture data.
     events, source = candidates_from_rest()
+
+    # Fall back to the public website if necessary.
     if not events:
         events, source = candidates_from_homepage()
-    # Deduplicate by title + start.
-    # Deduplicate by title + start.
-dedup = {}
-for e in events:
-    dedup[(e["title"].lower(), e["start"].isoformat())] = e
 
-events = list(dedup.values())
+    # -------------------------------------------------
+    # DEDUPLICATE FIXTURES
+    # -------------------------------------------------
 
-# Keep today's fixtures and all future fixtures.
-today = datetime.now(timezone.utc).date()
-events = [e for e in events if e["start"].date() >= today]
+    deduplicated = {}
 
-if not events:
-    print(
-        "No current or future Steel Queens fixtures found. "
-        "Refusing to overwrite existing calendars.",
-        file=sys.stderr,
+    for event in events:
+        key = (
+            event["title"].lower(),
+            event["start"].isoformat(),
+        )
+
+        deduplicated[key] = event
+
+    events = list(
+        deduplicated.values()
     )
-    return 2
 
-home = [e for e in events if is_home(e["title"])]
-    Path(CFG["feeds"]["all"]).write_text(calendar(events, "Caledonia Steel Queens – All Games"), encoding="utf-8")
-    Path(CFG["feeds"]["home"]).write_text(calendar(home, "Caledonia Steel Queens – Home Games"), encoding="utf-8")
-    print(f"Source: {source}")
-    print(f"Found {len(events)} Steel Queens fixtures; {len(home)} home fixtures.")
+    # -------------------------------------------------
+    # REMOVE HISTORICAL FIXTURES
+    # -------------------------------------------------
+    #
+    # Keep:
+    #   - games taking place today
+    #   - every future game
+    #
+    # Remove:
+    #   - yesterday and anything earlier
+    #
+    # Keeping today's game means it will remain visible
+    # for the whole match day rather than disappearing
+    # immediately after face-off.
+    # -------------------------------------------------
+
+    today = datetime.now(
+        timezone.utc
+    ).date()
+
+    events = [
+        event
+        for event in events
+        if event["start"].date() >= today
+    ]
+
+    # Safety feature:
+    #
+    # If the source suddenly contains no current/future
+    # fixtures, don't overwrite the existing calendars
+    # with empty files.
+    if not events:
+        print(
+            (
+                "No current or future Steel Queens "
+                "fixtures found. Refusing to overwrite "
+                "existing calendars."
+            ),
+            file=sys.stderr,
+        )
+
+        return 2
+
+    # -------------------------------------------------
+    # HOME-ONLY CALENDAR
+    # -------------------------------------------------
+
+    home_events = [
+        event
+        for event in events
+        if is_home(event["title"])
+    ]
+
+    # -------------------------------------------------
+    # WRITE ALL-GAMES CALENDAR
+    # -------------------------------------------------
+
+    Path(
+        CFG["feeds"]["all"]
+    ).write_text(
+        calendar(
+            events,
+            "Caledonia Steel Queens – All Games",
+        ),
+        encoding="utf-8",
+    )
+
+    # -------------------------------------------------
+    # WRITE HOME-GAMES CALENDAR
+    # -------------------------------------------------
+
+    Path(
+        CFG["feeds"]["home"]
+    ).write_text(
+        calendar(
+            home_events,
+            "Caledonia Steel Queens – Home Games",
+        ),
+        encoding="utf-8",
+    )
+
+    # -------------------------------------------------
+    # LOG RESULTS IN GITHUB ACTIONS
+    # -------------------------------------------------
+
+    print(
+        f"Source: {source}"
+    )
+
+    print(
+        f"Found {len(events)} current/future "
+        f"Steel Queens fixtures; "
+        f"{len(home_events)} home fixtures."
+    )
+
     return 0
 
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(
+        main()
+    )
