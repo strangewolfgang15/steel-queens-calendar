@@ -488,11 +488,11 @@ def main():
     # If the source suddenly contains no current/future
     # fixtures, don't overwrite the existing calendars
     # with empty files.
-    if not events:
-    print(
-        "No current or future Steel Queens fixtures found. "
-        "Publishing empty calendars until new fixtures are added."
-    )
+       if not events:
+        print(
+            "No current or future Steel Queens fixtures found. "
+            "Publishing empty calendars until new fixtures are added."
+        )
 
     # -------------------------------------------------
     # HOME-ONLY CALENDAR
