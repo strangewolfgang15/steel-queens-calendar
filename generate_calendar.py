@@ -1,8 +1,3 @@
-today = datetime.now(timezone.utc).date()
-
-# Skip fixtures before today
-if fixture_start.date() < today:
-    continue
     #!/usr/bin/env python3
 import json, re, sys
 from datetime import datetime, timedelta, timezone
@@ -168,14 +163,26 @@ def main():
     if not events:
         events, source = candidates_from_homepage()
     # Deduplicate by title + start.
-    dedup = {}
-    for e in events:
-        dedup[(e["title"].lower(), e["start"].isoformat())] = e
-    events = list(dedup.values())
-    if not events:
-        print("No Steel Queens fixtures found. Refusing to overwrite existing calendars.", file=sys.stderr)
-        return 2
-    home = [e for e in events if is_home(e["title"])]
+    # Deduplicate by title + start.
+dedup = {}
+for e in events:
+    dedup[(e["title"].lower(), e["start"].isoformat())] = e
+
+events = list(dedup.values())
+
+# Keep today's fixtures and all future fixtures.
+today = datetime.now(timezone.utc).date()
+events = [e for e in events if e["start"].date() >= today]
+
+if not events:
+    print(
+        "No current or future Steel Queens fixtures found. "
+        "Refusing to overwrite existing calendars.",
+        file=sys.stderr,
+    )
+    return 2
+
+home = [e for e in events if is_home(e["title"])]
     Path(CFG["feeds"]["all"]).write_text(calendar(events, "Caledonia Steel Queens – All Games"), encoding="utf-8")
     Path(CFG["feeds"]["home"]).write_text(calendar(home, "Caledonia Steel Queens – Home Games"), encoding="utf-8")
     print(f"Source: {source}")
