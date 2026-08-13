@@ -1,0 +1,13 @@
+{
+  "team_name": "Caledonia Steel Queens",
+  "short_name": "Steel Queens",
+  "site_url": "https://caledoniasteelqueens.co.uk",
+  "timezone": "Europe/London",
+  "default_duration_minutes": 180,
+  "reminders_minutes": [1440, 120],
+  "home_venue": "Murrayfield Ice Arena, 13 Riversdale Cres, Edinburgh EH12 5XN",
+  "feeds": {
+    "all": "docs/steel-queens-all.ics",
+    "home": "docs/steel-queens-home.ics"
+  }
+}
