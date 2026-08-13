@@ -489,16 +489,10 @@ def main():
     # fixtures, don't overwrite the existing calendars
     # with empty files.
     if not events:
-        print(
-            (
-                "No current or future Steel Queens "
-                "fixtures found. Refusing to overwrite "
-                "existing calendars."
-            ),
-            file=sys.stderr,
-        )
-
-        return 2
+    print(
+        "No current or future Steel Queens fixtures found. "
+        "Publishing empty calendars until new fixtures are added."
+    )
 
     # -------------------------------------------------
     # HOME-ONLY CALENDAR
