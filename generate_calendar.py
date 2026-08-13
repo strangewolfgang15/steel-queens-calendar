@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+today = datetime.now(timezone.utc).date()
+
+# Skip fixtures before today
+if fixture_start.date() < today:
+    continue
+    #!/usr/bin/env python3
 import json, re, sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
