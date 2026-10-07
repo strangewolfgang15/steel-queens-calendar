@@ -5,4 +5,184 @@ METHOD:PUBLISH
 PRODID:-//Steel Queens Calendar//EN
 X-WR-CALNAME:Caledonia Steel Queens – Home Games
 X-WR-TIMEZONE:Europe/London
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-kingston-diamonds2026-11-28t12-15-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20261128T121500Z
+DTEND:20261128T151500Z
+SUMMARY:🏒 Steel Queens vs Kingston Diamonds
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3328/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Kingston Diamonds reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Kingston Diamonds reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-kingston-diamonds2026-11-29t08-00-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20261129T080000Z
+DTEND:20261129T110000Z
+SUMMARY:🏒 Steel Queens vs Kingston Diamonds
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3329/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Kingston Diamonds reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Kingston Diamonds reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-whitley-bay-beacons2026-12-13t19-30-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20261213T193000Z
+DTEND:20261213T223000Z
+SUMMARY:🏒 Steel Queens vs Whitley Bay Beacons
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3331/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Whitley Bay Beacons reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Whitley Bay Beacons reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-solihull-vixens2027-01-16t12-15-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20270116T121500Z
+DTEND:20270116T151500Z
+SUMMARY:🏒 Steel Queens vs Solihull Vixens
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3333/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Solihull Vixens reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Solihull Vixens reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-streatham-storm2027-01-23t12-15-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20270123T121500Z
+DTEND:20270123T151500Z
+SUMMARY:🏒 Steel Queens vs Streatham Storm
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3335/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Streatham Storm reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Streatham Storm reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-streatham-storm2027-01-24t08-00-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20270124T080000Z
+DTEND:20270124T110000Z
+SUMMARY:🏒 Steel Queens vs Streatham Storm
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3337/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Streatham Storm reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Streatham Storm reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-bristol-huskies2027-02-27t12-15-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20270227T121500Z
+DTEND:20270227T151500Z
+SUMMARY:🏒 Steel Queens vs Bristol Huskies
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3341/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Bristol Huskies reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Bristol Huskies reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-bristol-huskies2027-02-28t08-00-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20270228T080000Z
+DTEND:20270228T110000Z
+SUMMARY:🏒 Steel Queens vs Bristol Huskies
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3342/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Bristol Huskies reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Bristol Huskies reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:caledonia-steel-queens-vs-queen-bees2027-03-28t19-30-00-00-00@steel-queens-calendar
+DTSTAMP:20261007T133623Z
+DTSTART:20270328T193000Z
+DTEND:20270328T223000Z
+SUMMARY:🏒 Steel Queens vs Queen Bees
+LOCATION:Murrayfield Ice Arena\, 13 Riversdale Cres\, Edinburgh EH12 5XN
+DESCRIPTION:Fixture source: https://caledoniasteelqueens.co.uk/event/3344/
+STATUS:CONFIRMED
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Queen Bees reminder
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:🏒 Steel Queens vs Queen Bees reminder
+TRIGGER:-PT120M
+END:VALARM
+END:VEVENT
 END:VCALENDAR
